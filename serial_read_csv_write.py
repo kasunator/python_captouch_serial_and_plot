@@ -5,6 +5,8 @@ csv file, the idea is to write another program which will read the .csv file for
 the data is formatted in the following way
 KASUN:PROX STAT READING:0
 KASUN:[0]=14,[ID]=1,[CP]=c,[DIFF]=0,[BASELINE]=b7ad,[RAW]b7ad,[AVG]=b7c9,[12]=14
+
+"KASUN:PROX STAT READING:%d\n"
 """
 
 import serial
@@ -20,9 +22,20 @@ from datetime import datetime
 
 
 def  extract_prox_stat_result(rx_string):
+	result = 0
 	prox_stat_index = rx_string.find("PROX STAT READING:")
-	prox_stat_result = rx_string[prox_stat_index + len("PROX STAT READING:")]
-	return prox_stat_result
+	prox_stat_result = rx_string[prox_stat_index + len("PROX STAT READING:"):]
+	if prox_stat_result[0] == '1' :
+		result = 1
+	elif prox_stat_result[0] == '2' :
+		result = 2
+	elif prox_stat_result[0] == '3':
+	 	result = 3
+	elif prox_stat_result[0] == '0':
+		result =0
+	else :
+		print("result unknown")
+	return result
 
 def check_if_prox_stat(rx_string):
 	prox_stat_index = rx_string.find("PROX STAT READING:")
@@ -75,7 +88,7 @@ def extract_data_value(data_tag, rx_string) :
 
 port = serial.Serial("/dev/ttyUSB0", baudrate=115200, timeout=3.0)
 
-fieldnames = ["time","diff","baseline","raw","avg"]
+fieldnames = ["time","diff","baseline","raw","avg","result"]
 
 with open('python_captouch_data.csv','w') as csv_file :
     csv_writer = csv.DictWriter(csv_file, fieldnames = fieldnames)
@@ -102,6 +115,7 @@ while True:
 			#ok now lets write this data to our file
 			now = datetime.now().strftime("%H:%M:%S")
 			#row = [now, diff]
+			"""
 			with open('python_captouch_data.csv', 'a') as f:
 				#writer = csv.writer(f)
 				writer = csv.DictWriter(f, fieldnames = fieldnames)
@@ -114,8 +128,23 @@ while True:
 				}
 				writer.writerow(info)
 				#writer.writerow(row)
+			"""
 		else :
-			print("this is prox stat")
+			result = extract_prox_stat_result(rx_string_data)
+			#print("this is prox stat"+ str(result))
+			with open('python_captouch_data.csv', 'a') as f:
+				#writer = csv.writer(f)
+				writer = csv.DictWriter(f, fieldnames = fieldnames)
+				info = {
+					"time":now,
+					"diff":diff,
+					"baseline":baseline,
+					"raw":raw,
+					"avg":avg,
+					"result":result
+				}
+				writer.writerow(info)
+
 		#print("kasun index found")
 	else :
 		print("kasun index not found")

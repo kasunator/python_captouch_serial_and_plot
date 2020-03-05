@@ -22,15 +22,15 @@ while True:
 		if index2 != -1:
 			#print("rcv2 len" + str(len(rcv2)) )
 			#print("PROX STAT READING: index" + str(index2))
-			#print("PROX STAT READING: length" + str(len("PROX STAT READING:")) ) 
+			#print("PROX STAT READING: length" + str(len("PROX STAT READING:")) )
 			result = rcv2[index2 + len("PROX STAT READING:")]
 			#print("result" + result)
 			if result == '1' or result == '2' or result == '3' :
 				print("Prox Detected on:"+result)
 				rcv_again = port.readline().decode('utf-8')
 				print(rcv_again)
-		else :
-			print("decode for PROX STAT READING: error")
+		#else :
+			#print("decode for PROX STAT READING: error")
 	#else :
 		#print("decode for KASUN: error")
 		#print(rcv)
