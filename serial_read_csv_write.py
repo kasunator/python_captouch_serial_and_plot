@@ -7,6 +7,7 @@ KASUN:PROX STAT READING:0
 KASUN:[0]=14,[ID]=1,[CP]=c,[DIFF]=0,[BASELINE]=b7ad,[RAW]b7ad,[AVG]=b7c9,[12]=14
 
 "KASUN:PROX STAT READING:%d\n"
+"KASUN:PROX STAT READING ORIGINAL:%d\n";
 """
 
 import serial
@@ -37,8 +38,30 @@ def  extract_prox_stat_result(rx_string):
 		print("result unknown")
 	return result
 
+def  extract_prox_stat_result_original(rx_string):
+	result = 0
+	prox_stat_index = rx_string.find("PROX STAT READING ORIGINAL:")
+	prox_stat_result = rx_string[prox_stat_index + len("PROX STAT READING ORIGINAL:"):]
+	if prox_stat_result[0] == '1' :
+		result = 1
+	elif prox_stat_result[0] == '2' :
+		result = 2
+	elif prox_stat_result[0] == '3':
+	 	result = 3
+	elif prox_stat_result[0] == '0':
+		result =0
+	else :
+		print("result unknown")
+	return result
+
 def check_if_prox_stat(rx_string):
 	prox_stat_index = rx_string.find("PROX STAT READING:")
+	if prox_stat_index != -1 :
+		return True
+	else :
+		return False
+def check_if_prox_stat_original(rx_string):
+	prox_stat_index = rx_string.find("PROX STAT READING ORIGINAL:")
 	if prox_stat_index != -1 :
 		return True
 	else :
@@ -85,10 +108,17 @@ def extract_data_value(data_tag, rx_string) :
 		return -1
 
 """ the main function starts here"""
+now = datetime.now().strftime("%H:%M:%S")
+diff = 0
+baseline =0
+raw = 0
+avg = 0
+result = 0
+result_original =0
 
 port = serial.Serial("/dev/ttyUSB0", baudrate=115200, timeout=3.0)
 
-fieldnames = ["time","diff","baseline","raw","avg","result"]
+fieldnames = ["time","diff","baseline","raw","avg","result","result_original"]
 
 with open('python_captouch_data.csv','w') as csv_file :
     csv_writer = csv.DictWriter(csv_file, fieldnames = fieldnames)
@@ -101,7 +131,7 @@ while True:
 	if kasun_tag_index != -1 :
 		rx_string_data = rx_string[kasun_tag_index + len("KASUN:"):]
 		#print("Rx string data " + rx_string_data)
-		if check_if_prox_stat(rx_string_data) == False :
+		if check_if_prox_stat(rx_string_data) == False and check_if_prox_stat_original(rx_string_data) == False :
 			#print("this is not prox stat")
 			#extract_DIFF_count(rx_string_data)
 			diff = extract_data_value(data_tag = "[DIFF]=",rx_string = rx_string_data)
@@ -111,7 +141,7 @@ while True:
 			raw = extract_data_value(data_tag = "[RAW]=",rx_string = rx_string_data)
 			#extract [AVG]
 			avg = extract_data_value(data_tag = "[AVG]=",rx_string = rx_string_data)
-			print("diff =" + str(diff) )
+			#print("diff =" + str(diff) )
 			#ok now lets write this data to our file
 			now = datetime.now().strftime("%H:%M:%S")
 			#row = [now, diff]
@@ -130,8 +160,15 @@ while True:
 				#writer.writerow(row)
 			"""
 		else :
-			result = extract_prox_stat_result(rx_string_data)
-			#print("this is prox stat"+ str(result))
+			if check_if_prox_stat_original(rx_string_data) == True :
+				result_original = extract_prox_stat_result_original(rx_string)
+				print("this is prox stat original"+ str(result_original))
+			elif check_if_prox_stat(rx_string_data) == True:
+				result = extract_prox_stat_result(rx_string_data)
+				print("this is prox stat"+ str(result))
+			else:
+				print("decode error")
+
 			with open('python_captouch_data.csv', 'a') as f:
 				#writer = csv.writer(f)
 				writer = csv.DictWriter(f, fieldnames = fieldnames)
@@ -141,7 +178,8 @@ while True:
 					"baseline":baseline,
 					"raw":raw,
 					"avg":avg,
-					"result":result
+					"result":result,
+					"result_original":result_original,
 				}
 				writer.writerow(info)
 
